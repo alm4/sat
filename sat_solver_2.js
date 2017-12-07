@@ -112,18 +112,17 @@ exports.solve = function(fileName) {
         return newAssignment;
     }
 
-    function executeClauses(clauses, assignment) {
+    function assemblyChainClauses(clauses) {
 
-        let isSat = false;
+        let clausesChain = "";
 
-        let resultValue;
-
-        let clausesValues = [];
-
-        let variableValue;
-        let variableInd = -1;
+        let clausesVariableChain = "";
 
         let clauseElement;
+
+        let variableInd = -1;
+
+        let notChar = "";
 
         for (let i = 0; i < clauses.length; i++) {
 
@@ -132,27 +131,31 @@ exports.solve = function(fileName) {
                 clauseElement = clauses[i][j];
 
                 variableInd = Math.abs(clauseElement) - 1;
-                variableValue = (assignment[variableInd] != 0);
 
-                variableValue = (clauseElement < 0) ? !variableValue : variableValue;
+                if (j > 0) {
 
-                clausesValues[i] = (clausesValues[i] || variableValue);
+                    clausesVariableChain += " || ";
+                }
+
+                notChar = (clauseElement < 0) ? "!" : "";
+
+                clausesVariableChain += notChar + "(assignment[" + variableInd + "] != 0)";
+
             }
 
-            if (typeof resultValue === 'undefined') {
+            if (i > 0) {
 
-                resultValue = clausesValues[i];
-
-            } else {
-
-                resultValue = (resultValue && clausesValues[i]);
+                clausesChain += " && ";
             }
 
+            clausesChain += "(" + clausesVariableChain + ")";
+
+            clausesVariableChain = "";
         }
 
-        isSat = resultValue;
+        clausesChain = "isSat = (" + clausesChain + ")";
 
-        return isSat;
+        return clausesChain;
     }
 
     function doSolve(clauses, assignment) {
@@ -167,6 +170,10 @@ exports.solve = function(fileName) {
 
             //console.log("possibilities " + possibilities);
 
+            let clausesChain = assemblyChainClauses(clauses);
+
+            //console.log("clausesChain " + clausesChain);
+
             let testCount = 1;
 
             while ((!isSat) && (testCount <= possibilities)) {
@@ -176,7 +183,7 @@ exports.solve = function(fileName) {
 
                 runProgress(true, possibilities, testCount);
 
-                isSat = executeClauses(clauses, assignment);
+                eval(clausesChain);
 
                 if ((!isSat) && (testCount < possibilities)) {
 
